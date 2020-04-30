@@ -65,7 +65,9 @@ class bLModule(nn.Module):
         super(bLModule, self).__init__()
 
         self.relu = nn.ReLU(inplace=True)
+        #ResBlockB
         self.big = self._make_layer(block, in_channels, out_channels, blocks - 1, 2, last_relu=False)
+        #ResBlockL
         self.little = self._make_layer(block, in_channels, out_channels // alpha, max(1, blocks // beta - 1))
         self.little_e = nn.Sequential(
             nn.Conv2d(out_channels // alpha, out_channels, kernel_size=1, bias=False),
@@ -168,24 +170,38 @@ class bLResNet(nn.Module):
         return nn.Sequential(*layers)
 
     def forward(self, x):
+        #stem
         x = self.conv1(x)
         x = self.bn1(x)
         x = self.relu(x)
 
+        #stem, body transition bL module (maxpool in original torchvision)
         bx = self.b_conv0(x)
         bx = self.bn_b0(bx)
+        #big module with single 3x3 convolution 64 channels and stride 2
+
         lx = self.l_conv0(x)
         lx = self.bn_l0(lx)
         lx = self.relu(lx)
+        #conv with stride 2(l_conv1), reducing feature map size
         lx = self.l_conv1(lx)
         lx = self.bn_l1(lx)
         lx = self.relu(lx)
         lx = self.l_conv2(lx)
         lx = self.bn_l2(lx)
+        #little module with 3x3 conv 64 channels(l_conv0), 
+        #3x3 conv 64 channels stride 2(l_conv1), 
+        #1x1 conv 64 channels(l_conv2)
+
         x = self.relu(bx + lx)
+        #big and little path  has equal feature map and channels
+        #they are combined with element-wise addition (within brackets)
+
         x = self.bl_init(x)
         x = self.bn_bl_init(x)
         x = self.relu(x)
+        #After the bLmodule, an additional 1x1 conv-BN-ReLU is added. 
+        #This isn't obvious from the original paper
 
         x = self.layer1(x)
         x = self.layer2(x)
