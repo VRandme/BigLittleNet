@@ -95,11 +95,19 @@ class bLModule(nn.Module):
         return nn.Sequential(*layers)
 
     def forward(self, x):
+        #big module with 1 less block and halved "resolution"
+        #low resolution feature maps
         big = self.big(x)
+        #little module with 1 or (blocks // beta - 1) blocks. Without resolution halving. 
+        #high resolution feature maps
         little = self.little(x)
+        #before merging, the little module goes through 1 x 1 conv and BN.
         little = self.little_e(little)
+        #before merging, the big module goes through upsampling
+        #the paper describes 'bilinear', but code as is defaults to 'nearest'
         big = torch.nn.functional.interpolate(big, little.shape[2:])
         out = self.relu(big + little)
+        #fusion is a single resblock with stride 2
         out = self.fusion(out)
 
         return out
