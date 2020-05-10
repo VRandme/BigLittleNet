@@ -143,6 +143,8 @@ class bLResNet(nn.Module):
                                num_channels[1] * block.expansion, layers[1], alpha, beta, stride=2)
         self.layer3 = bLModule(block, num_channels[1] * block.expansion,
                                num_channels[2] * block.expansion, layers[2], alpha, beta, stride=1)
+        
+        #Layer 4 is equal to Vanilla ResNet
         self.layer4 = self._make_layer(
             block, num_channels[2] * block.expansion, num_channels[3] * block.expansion, layers[3], stride=2)
         self.gappool = nn.AdaptiveAvgPool2d(1)
